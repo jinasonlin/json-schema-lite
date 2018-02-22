@@ -2,35 +2,38 @@ const typeis = (obj) => {
   return (obj === null || obj === undefined) ? String(obj) : Object.prototype.toString.call(obj).match(/\[object (\w+)\]/)[1].toLowerCase();
 };
 
-const buildSchema = (schema) => {
+const schema2json = (schema) => {
   switch (schema.type) {
-    case 'object':
-      return schema.properties.reduce((obj, item) => {
-        if (item.name) {
-          obj[item.name] = buildSchema(item);
-        }
-        return obj;
-      }, {});
     case 'null': {
       return null;
     }
+    case 'object':
+      return schema.properties.reduce((obj, item) => {
+        if (item.name) {
+          obj[item.name] = schema2json(item);
+        }
+        return obj;
+      }, {});
     case 'array':
-      return [buildSchema(schema.items)];
+      return [schema2json(schema.items)];
+    case 'string': {
+      const isString = typeis(schema.example) === 'string';
+      return !isString ? '' : schema.example;
+    }
     case 'number': {
       const value = +schema.example;
       return Number.isNaN(value) ? Math.ceil(Math.random() * 2) - 1 : value;
     }
     case 'boolean': {
-      const isEmpty = !schema.example;
-      const value = !isEmpty && schema.example === 'true';
-      return isEmpty ? Math.ceil(Math.random() * 2) > 1 : value;
+      const isBoolean = typeis(schema.example) === 'boolean';
+      return !isBoolean ? Math.ceil(Math.random() * 2) > 1 : schema.example;
     }
     default:
-      return schema.example || schema.type;
+      return schema.example;
   }
 };
 
-const buildJson = (example, name = 'root') => {
+const json2schema = (example, name = 'root') => {
   const defaultProperties = [{}];
   const defaultItem = '';
   const type = typeis(example);
@@ -49,7 +52,7 @@ const buildJson = (example, name = 'root') => {
       return {
         name,
         type,
-        properties: keys.map(key => buildJson(example[key], key)),
+        properties: keys.map(key => json2schema(example[key], key)),
       };
     }
     case 'null': {
@@ -63,7 +66,7 @@ const buildJson = (example, name = 'root') => {
       return {
         name,
         type,
-        items: buildJson(example[0] || defaultItem, `${name}.item`),
+        items: json2schema(example[0] || defaultItem, `${name}.item`),
       };
     }
     default:
@@ -76,6 +79,8 @@ const buildJson = (example, name = 'root') => {
 };
 
 module.exports = {
-  buildSchema,
-  buildJson,
+  schema2json,
+  buildSchema: schema2json,
+  json2schema,
+  buildJson: json2schema,
 };

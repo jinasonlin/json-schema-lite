@@ -8,7 +8,7 @@
     "mocha": "^5.0.0"
   },
   "scripts": {
-    "cov": "nyc --reporter=lcov npm run test",
+    "cov": "nyc --reporter=html --reporter=text npm run test",
     "test": "mocha"
   },
   "author": "Lin Qun",
